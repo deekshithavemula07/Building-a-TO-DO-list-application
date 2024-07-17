@@ -1,0 +1,119 @@
+import sqlite3
+
+# Function to create and connect to the SQLite database
+def create_db():
+    conn = sqlite3.connect('todo.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS tasks
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  task TEXT NOT NULL,
+                  priority INTEGER DEFAULT 1,
+                  category TEXT,
+                  due_date TEXT,
+                  completed INTEGER DEFAULT 0)''')
+    conn.commit()
+    conn.close()
+
+# Function to add a new task
+def add_task(task, priority=1, category=None, due_date=None):
+    conn = sqlite3.connect('todo.db')
+    c = conn.cursor()
+    c.execute('INSERT INTO tasks (task, priority, category, due_date) VALUES (?, ?, ?, ?)', 
+              (task, priority, category, due_date))
+    conn.commit()
+    conn.close()
+
+# Function to delete a task by ID
+def delete_task(task_id):
+    conn = sqlite3.connect('todo.db')
+    c = conn.cursor()
+    c.execute('DELETE FROM tasks WHERE id=?', (task_id,))
+    conn.commit()
+    conn.close()
+
+# Function to update a task by ID
+def update_task(task_id, task=None, priority=None, category=None, due_date=None, completed=None):
+    conn = sqlite3.connect('todo.db')
+    c = conn.cursor()
+    if task:
+        c.execute('UPDATE tasks SET task=? WHERE id=?', (task, task_id))
+    if priority:
+        c.execute('UPDATE tasks SET priority=? WHERE id=?', (priority, task_id))
+    if category:
+        c.execute('UPDATE tasks SET category=? WHERE id=?', (category, task_id))
+    if due_date:
+        c.execute('UPDATE tasks SET due_date=? WHERE id=?', (due_date, task_id))
+    if completed is not None:
+        c.execute('UPDATE tasks SET completed=? WHERE id=?', (completed, task_id))
+    conn.commit()
+    conn.close()
+
+# Function to view tasks
+def view_tasks(filter_by=None, value=None):
+    conn = sqlite3.connect('todo.db')
+    c = conn.cursor()
+    if filter_by and value:
+        c.execute(f'SELECT * FROM tasks WHERE {filter_by}=?', (value,))
+    else:
+        c.execute('SELECT * FROM tasks')
+    tasks = c.fetchall()
+    conn.close()
+    return tasks
+
+# Function to print the main menu
+def print_menu():
+    print("\nTo-Do List Application")
+    print("1. Add a new task")
+    print("2. Delete a task")
+    print("3. Update a task")
+    print("4. View all tasks")
+    print("5. Exit")
+
+# Main function to run the CLI
+def main():
+    create_db()  # Ensure the database is created when the program starts
+    while True:
+        print_menu()
+        choice = input("Enter your choice: ")
+
+        if choice == '1':
+            task = input("Enter task: ")
+            priority = input("Enter priority (default 1): ") or 1
+            category = input("Enter category: ")
+            due_date = input("Enter due date (YYYY-MM-DD): ")
+            add_task(task, priority, category, due_date)
+            print("Task added successfully!")
+
+        elif choice == '2':
+            task_id = int(input("Enter task ID to delete: "))
+            delete_task(task_id)
+            print("Task deleted successfully!")
+
+        elif choice == '3':
+            task_id = int(input("Enter task ID to update: "))
+            task = input("Enter new task (leave blank to keep unchanged): ")
+            priority = input("Enter new priority (leave blank to keep unchanged): ")
+            category = input("Enter new category (leave blank to keep unchanged): ")
+            due_date = input("Enter new due date (YYYY-MM-DD, leave blank to keep unchanged): ")
+            completed = input("Mark as completed? (1 for Yes, 0 for No, leave blank to keep unchanged): ")
+
+            update_task(task_id, task or None, priority or None, category or None, due_date or None, 
+                        int(completed) if completed in ('0', '1') else None)
+            print("Task updated successfully!")
+
+        elif choice == '4':
+            filter_by = input("Filter by (priority/category/due_date/completed or leave blank for all): ")
+            value = input("Filter value: ") if filter_by else None
+            tasks = view_tasks(filter_by, value)
+            for task in tasks:
+                print(task)
+
+        elif choice == '5':
+            print("Exiting...")
+            break
+
+        else:
+            print("Invalid choice. Please try again.")
+
+if __name__ == "__main__":
+    main()
